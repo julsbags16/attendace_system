@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Attendance System</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .navbar h1 {
+            font-size: 24px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid white;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 60px;
+            width: 250px;
+            height: calc(100vh - 60px);
+            background: white;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+        }
+        
+        .sidebar a {
+            display: block;
+            padding: 15px 20px;
+            color: #333;
+            text-decoration: none;
+            border-left: 3px solid transparent;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+        
+        .sidebar a:hover,
+        .sidebar a.active {
+            background: #f0f0f0;
+            border-left-color: #667eea;
+            color: #667eea;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            margin-top: 60px;
+            padding: 30px;
+            min-height: calc(100vh - 60px);
+        }
+        
+        .section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card h3 {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+        
+        .card .value {
+            font-size: 32px;
+            font-weight: bold;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .chart-container h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="date"],
+        input[type="month"],
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="password"]:focus,
+        input[type="date"]:focus,
+        input[type="month"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        table th {
+            background: #f0f0f0;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            color: #333;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        table tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-badge.present {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-badge.absent {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-badge.late {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-badge.active {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-badge.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .risk-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .risk-badge.high {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .risk-badge.medium {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .risk-badge.low {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            overflow: auto;
+        }
+        
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            flex: 1;
+        }
+        
+        .close-btn {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #aaa;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+        
+        .close-btn:hover {
+            color: #000;
+        }
+        
+        .message {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .message.show {
+            display: block;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .filter-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-mini {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-mini h4 {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+        
+        .stat-mini .value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: relative;
+                top: 0;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid #ddd;
+            }
+            
+            .main-content {
+                margin-left: 0;
+                margin-top: 0;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>🏢 Admin Dashboard</h1>
+        <div class="user-info">
+            <span id="userName">Admin</span>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+    
+    <div class="sidebar">
+        <a onclick="switchTab('dashboard')" class="menu-item active">📊 Dashboard</a>
+        <a onclick="switchTab('analytics')" class="menu-item">📈 Analytics</a>
+        <a onclick="switchTab('employees')" class="menu-item">👥 Employees</a>
+        <a onclick="switchTab('attendance')" class="menu-item">📋 Attendance</a>
+        <a onclick="switchTab('reports')" class="menu-item">📑 Reports</a>
+        <a onclick="switchTab('ml-analysis')" class="menu-item">🤖 ML Analysis</a>
+    </div>
+    
+    <div class="main-content">
+        <div id="message" class="message"></div>
+        
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="section active">
+            <h2>📊 Dashboard Overview</h2>
+            <div class="dashboard-cards">
+                <div class="card">
+                    <h3>Total Employees</h3>
+                    <div class="value" id="totalEmployees">0</div>
+                </div>
+                <div class="card">
+                    <h3>Present Today</h3>
+                    <div class="value" id="presentToday">0</div>
+                </div>
+                <div class="card">
+                    <h3>Absent Today</h3>
+                    <div class="value" id="absentToday">0</div>
+                </div>
+                <div class="card">
+                    <h3>Late Today</h3>
+                    <div class="value" id="lateToday">0</div>
+                </div>
+                <div class="card">
+                    <h3>This Month Present</h3>
+                    <div class="value" id="monthPresent">0</div>
+                </div>
+                <div class="card">
+                    <h3>Attendance Rate</h3>
+                    <div class="value" id="attendanceRate">0%</div>
+                </div>
+            </div>
+            
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Today's Status Distribution</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="todayStatusChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Monthly Attendance Overview</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="monthlyOverviewChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Analytics Tab -->
+        <div id="analytics" class="section">
+            <h2>📈 Advanced Analytics</h2>
+            
+            <div class="filter-controls">
+                <div class="form-group">
+                    <label for="analyticsMonth">Select Month:</label>
+                    <input type="month" id="analyticsMonth">
+                </div>
+                <div>
+                    <label>&nbsp;</label>
+                    <button class="btn btn-primary" onclick="loadAnalytics()" style="width: 100%;">Load Analytics</button>
+                </div>
+            </div>
+            
+            <div class="stats-summary">
+                <div class="stat-mini">
+                    <h4>Total Working Days</h4>
+                    <div class="value" id="analyticsWorkingDays">0</div>
+                </div>
+                <div class="stat-mini">
+                    <h4>Avg Attendance %</h4>
+                    <div class="value" id="analyticsAvgRate">0%</div>
+                </div>
+                <div class="stat-mini">
+                    <h4>High Risk</h4>
+                    <div class="value" id="analyticsHighRisk">0</div>
+                </div>
+                <div class="stat-mini">
+                    <h4>Medium Risk</h4>
+                    <div class="value" id="analyticsMediumRisk">0</div>
+                </div>
+            </div>
+            
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Employee Attendance Comparison</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="employeeComparisonChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Department Attendance Performance</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="departmentPerformanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Attendance Status Breakdown</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="attendanceBreakdownChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Daily Attendance Trend</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="dailyTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Employees Tab -->
+        <div id="employees" class="section">
+            <h2>👥 Employee Management</h2>
+            <button class="btn btn-primary" onclick="openEmployeeModal()" style="margin-bottom: 20px;">+ Add New Employee</button>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Position</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="employeesTableBody">
+                    <tr>
+                        <td colspan="7" style="text-align: center;">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Attendance Tab -->
+        <div id="attendance" class="section">
+            <h2>📋 Attendance Records</h2>
+            <div style="margin-bottom: 15px;">
+                <label for="attendanceMonth">Select Month:</label>
+                <input type="month" id="attendanceMonth">
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Date</th>
+                        <th>Login Time</th>
+                        <th>Logout Time</th>
+                        <th>Hours Worked</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="attendanceTableBody">
+                    <tr>
+                        <td colspan="7" style="text-align: center;">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Reports Tab -->
+        <div id="reports" class="section">
+            <h2>📑 Reports</h2>
+            
+            <div style="margin-bottom: 20px;">
+                <h3>Monthly Report</h3>
+                <div class="filter-controls">
+                    <div class="form-group">
+                        <label for="reportMonth">Select Month:</label>
+                        <input type="month" id="reportMonth">
+                    </div>
+                    <div>
+                        <label>&nbsp;</label>
+                        <button class="btn btn-primary" onclick="generateMonthlyReport()" style="width: 100%;">Generate Report</button>
+                    </div>
+                </div>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th>Present</th>
+                        <th>Absent</th>
+                        <th>Late</th>
+                        <th>Leave</th>
+                        <th>Avg Hours</th>
+                        <th>Attendance %</th>
+                    </tr>
+                </thead>
+                <tbody id="reportTableBody">
+                    <tr>
+                        <td colspan="8" style="text-align: center;">Select a month and click Generate Report</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- ML Analysis Tab -->
+        <div id="ml-analysis" class="section">
+            <h2>🤖 ML-Based Risk Analysis</h2>
+            <p style="margin-bottom: 15px;">Employees at risk of poor attendance patterns based on ML predictions:</p>
+            
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Risk Level Distribution</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="riskDistributionChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Attendance Rate by Risk Level</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="riskAttendanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th>Attendance Rate</th>
+                        <th>Risk Level</th>
+                        <th>Recommendation</th>
+                    </tr>
+                </thead>
+                <tbody id="mlAnalysisTableBody">
+                    <tr>
+                        <td colspan="5" style="text-align: center;">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Employee Modal -->
+    <div id="employeeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add New Employee</h2>
+                <button class="close-btn" onclick="closeEmployeeModal()">&times;</button>
+            </div>
+            <div id="modalMessage" class="message"></div>
+            <form id="employeeForm" onsubmit="saveEmployee(event)">
+                <div class="form-group">
+                    <label>Username *</label>
+                    <input type="text" id="employeeUsername" required placeholder="e.g., john_smith">
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="employeeEmail" required placeholder="e.g., john@company.com">
+                </div>
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" id="employeeFullName" required placeholder="e.g., John Smith">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Department</label>
+                        <input type="text" id="employeeDepartment" placeholder="e.g., IT">
+                    </div>
+                    <div class="form-group">
+                        <label>Position</label>
+                        <input type="text" id="employeePosition" placeholder="e.g., Developer">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="employeeStatus">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #ddd;">
+                    <p style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                        <strong>Note:</strong> Default password will be sent to employee email.
+                    </p>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Create Employee</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let chartsInstances = {};
+        
+        // Switch tabs
+        function switchTab(tabName) {
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(s => s.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            
+            const menuItems = document.querySelectorAll('.menu-item');
+            menuItems.forEach(m => m.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Load data based on tab
+            if (tabName === 'dashboard') loadDashboard();
+            if (tabName === 'employees') loadEmployees();
+            if (tabName === 'attendance') loadAttendance();
+            if (tabName === 'ml-analysis') loadMLAnalysis();
+            if (tabName === 'analytics') {
+                document.getElementById('analyticsMonth').value = new Date().toISOString().slice(0, 7);
+                loadAnalytics();
+            }
+        }
+        
+        // Show message
+        function showMessage(text, type, containerId = 'message') {
+            const msg = document.getElementById(containerId);
+            msg.textContent = text;
+            msg.className = `message ${type} show`;
+            setTimeout(() => {
+                msg.className = 'message';
+            }, 4000);
+        }
+        
+        // Destroy chart if exists
+        function destroyChart(chartId) {
+            if (chartsInstances[chartId]) {
+                chartsInstances[chartId].destroy();
+            }
+        }
+        
+        // Load dashboard data
+        async function loadDashboard() {
+            try {
+                const response = await fetch('api/attendance.php?action=getAllAttendance');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const today = new Date().toISOString().slice(0, 10);
+                    const currentMonth = new Date().toISOString().slice(0, 7);
+                    
+                    const todayRecords = data.data.filter(r => r.attendance_date === today);
+                    const monthRecords = data.data.filter(r => r.attendance_date.startsWith(currentMonth));
+                    
+                    const present = todayRecords.filter(r => r.status === 'present').length;
+                    const absent = todayRecords.filter(r => r.status === 'absent').length;
+                    const late = todayRecords.filter(r => r.status === 'late').length;
+                    const monthPresent = monthRecords.filter(r => r.status === 'present').length;
+                    
+                    document.getElementById('presentToday').textContent = present;
+                    document.getElementById('absentToday').textContent = absent;
+                    document.getElementById('lateToday').textContent = late;
+                    document.getElementById('monthPresent').textContent = monthPresent;
+                    
+                    const attendanceRate = monthRecords.length > 0 ? Math.round((monthPresent / monthRecords.length) * 100) : 0;
+                    document.getElementById('attendanceRate').textContent = attendanceRate + '%';
+                    
+                    // Draw charts
+                    drawTodayStatusChart(present, absent, late, todayRecords.filter(r => r.status === 'leave').length);
+                    drawMonthlyOverviewChart(monthRecords);
+                }
+                
+                // Load total employees
+                const empResponse = await fetch('api/employees.php?action=getAll');
+                const empData = await empResponse.json();
+                if (empData.success) {
+                    document.getElementById('totalEmployees').textContent = empData.data.length;
+                }
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+        
+        // Draw today status chart
+        function drawTodayStatusChart(present, absent, late, leave) {
+            const ctx = document.getElementById('todayStatusChart');
+            if (!ctx) return;
+            
+            destroyChart('todayStatus');
+            
+            chartsInstances['todayStatus'] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Present', 'Absent', 'Late', 'Leave'],
+                    datasets: [{
+                        data: [present, absent, late, leave],
+                        backgroundColor: [
+                            '#27ae60',
+                            '#e74c3c',
+                            '#f39c12',
+                            '#3498db'
+                        ],
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Draw monthly overview chart
+        function drawMonthlyOverviewChart(records) {
+            const ctx = document.getElementById('monthlyOverviewChart');
+            if (!ctx) return;
+            
+            const dates = {};
+            records.forEach(r => {
+                const date = r.attendance_date;
+                if (!dates[date]) {
+                    dates[date] = { present: 0, absent: 0, late: 0, leave: 0 };
+                }
+                dates[date][r.status]++;
+            });
+            
+            const sortedDates = Object.keys(dates).sort();
+            const presentCounts = sortedDates.map(d => dates[d].present);
+            const absentCounts = sortedDates.map(d => dates[d].absent);
+            const lateCounts = sortedDates.map(d => dates[d].late);
+            
+            destroyChart('monthlyOverview');
+            
+            chartsInstances['monthlyOverview'] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sortedDates.map(d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+                    datasets: [
+                        {
+                            label: 'Present',
+                            data: presentCounts,
+                            borderColor: '#27ae60',
+                            backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Absent',
+                            data: absentCounts,
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Late',
+                            data: lateCounts,
+                            borderColor: '#f39c12',
+                            backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Load advanced analytics
+        async function loadAnalytics() {
+            try {
+                const month = document.getElementById('analyticsMonth').value;
+                if (!month) {
+                    showMessage('Please select a month', 'error');
+                    return;
+                }
+                
+                const response = await fetch('api/reports.php?action=monthlyReport&month=' + month);
+                const data = await response.json();
+                
+                if (data.success) {
+                    let totalRecords = 0;
+                    let totalPresent = 0;
+                    let highRisk = 0;
+                    let mediumRisk = 0;
+                    
+                    data.data.forEach(emp => {
+                        const records = emp.present + emp.absent + emp.late + emp.leave_count;
+                        totalRecords += records;
+                        totalPresent += emp.present;
+                        
+                        const rate = records > 0 ? (emp.present / records) * 100 : 0;
+                        if (rate < 75) highRisk++;
+                        else if (rate < 90) mediumRisk++;
+                    });
+                    
+                    const avgRate = totalRecords > 0 ? Math.round((totalPresent / totalRecords) * 100) : 0;
+                    
+                    document.getElementById('analyticsWorkingDays').textContent = totalRecords;
+                    document.getElementById('analyticsAvgRate').textContent = avgRate + '%';
+                    document.getElementById('analyticsHighRisk').textContent = highRisk;
+                    document.getElementById('analyticsMediumRisk').textContent = mediumRisk;
+                    
+                    // Draw charts
+                    drawEmployeeComparisonChart(data.data);
+                    drawDepartmentPerformanceChart(data.data);
+                    drawAttendanceBreakdownChart(data.data);
+                    drawDailyTrendChart(month);
+                }
+            } catch (error) {
+                showMessage('Error loading analytics', 'error');
+            }
+        }
+        
+        // Draw employee comparison chart
+        function drawEmployeeComparisonChart(employees) {
+            const ctx = document.getElementById('employeeComparisonChart');
+            if (!ctx) return;
+            
+            const names = employees.slice(0, 10).map(e => e.full_name.substring(0, 15));
+            const rates = employees.slice(0, 10).map(e => {
+                const records = e.present + e.absent + e.late + e.leave_count;
+                return records > 0 ? Math.round((e.present / records) * 100) : 0;
+            });
+            
+            destroyChart('employeeComparison');
+            
+            chartsInstances['employeeComparison'] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: names,
+                    datasets: [{
+                        label: 'Attendance Rate (%)',
+                        data: rates,
+                        backgroundColor: rates.map(r => r >= 90 ? '#27ae60' : r >= 75 ? '#f39c12' : '#e74c3c'),
+                        borderColor: '#333',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Draw department performance chart
+        function drawDepartmentPerformanceChart(employees) {
+            const ctx = document.getElementById('departmentPerformanceChart');
+            if (!ctx) return;
+            
+            const departments = {};
+            employees.forEach(emp => {
+                if (!departments[emp.department]) {
+                    departments[emp.department] = { present: 0, total: 0 };
+                }
+                departments[emp.department].present += emp.present;
+                departments[emp.department].total += emp.present + emp.absent + emp.late + emp.leave_count;
+            });
+            
+            const deptNames = Object.keys(departments);
+            const deptRates = deptNames.map(dept => {
+                const data = departments[dept];
+                return data.total > 0 ? Math.round((data.present / data.total) * 100) : 0;
+            });
+            
+            destroyChart('departmentPerformance');
+            
+            chartsInstances['departmentPerformance'] = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: deptNames,
+                    datasets: [{
+                        label: 'Department Attendance Rate (%)',
+                        data: deptRates,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Draw attendance breakdown chart
+        function drawAttendanceBreakdownChart(employees) {
+            const ctx = document.getElementById('attendanceBreakdownChart');
+            if (!ctx) return;
+            
+            let totalPresent = 0, totalAbsent = 0, totalLate = 0, totalLeave = 0;
+            employees.forEach(emp => {
+                totalPresent += emp.present;
+                totalAbsent += emp.absent;
+                totalLate += emp.late;
+                totalLeave += emp.leave_count;
+            });
+            
+            destroyChart('attendanceBreakdown');
+            
+            chartsInstances['attendanceBreakdown'] = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Present', 'Absent', 'Late', 'Leave'],
+                    datasets: [{
+                        data: [totalPresent, totalAbsent, totalLate, totalLeave],
+                        backgroundColor: [
+                            '#27ae60',
+                            '#e74c3c',
+                            '#f39c12',
+                            '#3498db'
+                        ],
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Draw daily trend chart
+        async function drawDailyTrendChart(month) {
+            try {
+                const response = await fetch('api/attendance.php?action=getAllAttendance');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const dates = {};
+                    data.data.filter(r => r.attendance_date.startsWith(month)).forEach(r => {
+                        const date = new Date(r.attendance_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                        if (!dates[date]) {
+                            dates[date] = { present: 0, absent: 0, late: 0, leave: 0 };
+                        }
+                        dates[date][r.status]++;
+                    });
+                    
+                    const sortedDates = Object.keys(dates).sort();
+                    const presentCounts = sortedDates.map(d => dates[d].present);
+                    
+                    const ctx = document.getElementById('dailyTrendChart');
+                    if (!ctx) return;
+                    
+                    destroyChart('dailyTrend');
+                    
+                    chartsInstances['dailyTrend'] = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: sortedDates,
+                            datasets: [{
+                                label: 'Daily Present Count',
+                                data: presentCounts,
+                                borderColor: '#27ae60',
+                                backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                                borderWidth: 3,
+                                tension: 0.4,
+                                fill: true,
+                                pointRadius: 5,
+                                pointBackgroundColor: '#27ae60'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top'
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error drawing daily trend:', error);
+            }
+        }
+        
+        // Load employees
+        async function loadEmployees() {
+            try {
+                const response = await fetch('api/employees.php?action=getAll');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const tbody = document.getElementById('employeesTableBody');
+                    tbody.innerHTML = '';
+                    
+                    if (data.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No employees found</td></tr>';
+                        return;
+                    }
+                    
+                    data.data.forEach(emp => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${emp.id}</td>
+                            <td>${emp.full_name}</td>
+                            <td>${emp.email}</td>
+                            <td>${emp.department || '-'}</td>
+                            <td>${emp.position || '-'}</td>
+                            <td><span class="status-badge ${emp.status}">${emp.status.toUpperCase()}</span></td>
+                            <td>
+                                <button class="btn btn-secondary btn-sm" onclick="editEmployee(${emp.id})">Edit</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteEmployee(${emp.id})">Delete</button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                } else {
+                    showMessage('Error loading employees: ' + data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error loading employees', 'error');
+                console.error('Error:', error);
+            }
+        }
+        
+        // Open employee modal
+        function openEmployeeModal() {
+            document.getElementById('employeeForm').reset();
+            document.getElementById('modalTitle').textContent = 'Add New Employee';
+            document.getElementById('modalMessage').className = 'message';
+            document.getElementById('employeeModal').classList.add('show');
+        }
+        
+        // Close employee modal
+        function closeEmployeeModal() {
+            document.getElementById('employeeModal').classList.remove('show');
+            document.getElementById('employeeForm').reset();
+        }
+        
+        // Save employee
+        async function saveEmployee(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('employeeUsername').value.trim();
+            const email = document.getElementById('employeeEmail').value.trim();
+            const fullName = document.getElementById('employeeFullName').value.trim();
+            const department = document.getElementById('employeeDepartment').value.trim();
+            const position = document.getElementById('employeePosition').value.trim();
+            const status = document.getElementById('employeeStatus').value;
+            
+            // Validation
+            if (!username || !email || !fullName) {
+                showMessage('Please fill in all required fields (*)', 'error', 'modalMessage');
+                return;
+            }
+            
+            if (!email.includes('@')) {
+                showMessage('Please enter a valid email', 'error', 'modalMessage');
+                return;
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('action', 'create');
+                formData.append('username', username);
+                formData.append('email', email);
+                formData.append('full_name', fullName);
+                formData.append('department', department);
+                formData.append('position', position);
+                formData.append('status', status);
+                
+                const response = await fetch('api/employees.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage('✓ Employee created successfully! Default password: ' + data.default_password, 'success', 'modalMessage');
+                    setTimeout(() => {
+                        closeEmployeeModal();
+                        loadEmployees();
+                        showMessage('Employee added successfully!', 'success');
+                    }, 2000);
+                } else {
+                    showMessage('Error: ' + data.message, 'error', 'modalMessage');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error', 'modalMessage');
+                console.error('Error:', error);
+            }
+        }
+        
+        // Delete employee
+        async function deleteEmployee(id) {
+            if (!confirm('Are you sure you want to delete this employee?')) return;
+            
+            try {
+                const response = await fetch('api/employees.php', {
+                    method: 'POST',
+                    body: new URLSearchParams({ action: 'delete', employee_id: id })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage('✓ Employee deleted successfully', 'success');
+                    loadEmployees();
+                } else {
+                    showMessage('Error: ' + data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error deleting employee', 'error');
+                console.error('Error:', error);
+            }
+        }
+        
+        // Load attendance
+        async function loadAttendance() {
+            try {
+                const month = document.getElementById('attendanceMonth').value || new Date().toISOString().slice(0, 7);
+                const response = await fetch(`api/attendance.php?action=getAllAttendance`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const tbody = document.getElementById('attendanceTableBody');
+                    tbody.innerHTML = '';
+                    
+                    const filtered = data.data.filter(r => r.attendance_date.startsWith(month));
+                    
+                    if (filtered.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No records for selected month</td></tr>';
+                        return;
+                    }
+                    
+                    filtered.forEach(record => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${record.full_name}</td>
+                            <td>${new Date(record.attendance_date).toLocaleDateString()}</td>
+                            <td>${record.login_time ? new Date(record.login_time).toLocaleTimeString() : '-'}</td>
+                            <td>${record.logout_time ? new Date(record.logout_time).toLocaleTimeString() : '-'}</td>
+                            <td>${record.hours_worked || '-'}</td>
+                            <td><span class="status-badge ${record.status}">${record.status.toUpperCase()}</span></td>
+                            <td>
+                                <button class="btn btn-secondary btn-sm" onclick="editAttendance(${record.id})">Edit</button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+            } catch (error) {
+                showMessage('Error loading attendance', 'error');
+                console.error('Error:', error);
+            }
+        }
+        
+        // Generate monthly report
+        async function generateMonthlyReport() {
+            const month = document.getElementById('reportMonth').value;
+            if (!month) {
+                showMessage('Please select a month', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`api/reports.php?action=monthlyReport&month=${month}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const tbody = document.getElementById('reportTableBody');
+                    tbody.innerHTML = '';
+                    
+                    if (data.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No data available</td></tr>';
+                        return;
+                    }
+                    
+                    data.data.forEach(record => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${record.full_name}</td>
+                            <td>${record.department || '-'}</td>
+                            <td>${record.present}</td>
+                            <td>${record.absent}</td>
+                            <td>${record.late}</td>
+                            <td>${record.leave_count}</td>
+                            <td>${record.avg_hours || '-'}</td>
+                            <td>${record.attendance_percentage || 0}%</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                    
+                    showMessage('✓ Report generated successfully', 'success');
+                } else {
+                    showMessage('Error: ' + data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error generating report', 'error');
+                console.error('Error:', error);
+            }
+        }
+        
+        // Load ML analysis
+        async function loadMLAnalysis() {
+            try {
+                const response = await fetch('api/ml_predictions.php?action=getAllPredictions');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const tbody = document.getElementById('mlAnalysisTableBody');
+                    tbody.innerHTML = '';
+                    
+                    if (data.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No predictions available. Run employee logins first.</td></tr>';
+                        return;
+                    }
+                    
+                    let highRisk = 0, mediumRisk = 0, lowRisk = 0;
+                    const rates = { high: [], medium: [], low: [] };
+                    
+                    data.data.forEach(pred => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${pred.full_name}</td>
+                            <td>${pred.department}</td>
+                            <td>${pred.predicted_attendance_rate}%</td>
+                            <td><span class="risk-badge ${pred.risk_level}">${pred.risk_level.toUpperCase()}</span></td>
+                            <td>${pred.recommendation.substring(0, 100)}...</td>
+                        `;
+                        tbody.appendChild(row);
+                        
+                        if (pred.risk_level === 'high') highRisk++;
+                        else if (pred.risk_level === 'medium') mediumRisk++;
+                        else lowRisk++;
+                        
+                        rates[pred.risk_level].push(pred.predicted_attendance_rate);
+                    });
+                    
+                    drawRiskDistributionChart(highRisk, mediumRisk, lowRisk);
+                    drawRiskAttendanceChart(rates);
+                }
+            } catch (error) {
+                showMessage('Error loading ML analysis', 'error');
+                console.error('Error:', error);
+            }
+        }
+        
+        // Draw risk distribution chart
+        function drawRiskDistributionChart(high, medium, low) {
+            const ctx = document.getElementById('riskDistributionChart');
+            if (!ctx) return;
+            
+            destroyChart('riskDistribution');
+            
+            chartsInstances['riskDistribution'] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['High Risk', 'Medium Risk', 'Low Risk'],
+                    datasets: [{
+                        data: [high, medium, low],
+                        backgroundColor: [
+                            '#e74c3c',
+                            '#f39c12',
+                            '#27ae60'
+                        ],
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Draw risk attendance chart
+        function drawRiskAttendanceChart(rates) {
+            const ctx = document.getElementById('riskAttendanceChart');
+            if (!ctx) return;
+            
+            const highAvg = rates.high.length > 0 ? Math.round(rates.high.reduce((a, b) => a + b) / rates.high.length) : 0;
+            const mediumAvg = rates.medium.length > 0 ? Math.round(rates.medium.reduce((a, b) => a + b) / rates.medium.length) : 0;
+            const lowAvg = rates.low.length > 0 ? Math.round(rates.low.reduce((a, b) => a + b) / rates.low.length) : 0;
+            
+            destroyChart('riskAttendance');
+            
+            chartsInstances['riskAttendance'] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['High Risk', 'Medium Risk', 'Low Risk'],
+                    datasets: [{
+                        label: 'Average Attendance Rate (%)',
+                        data: [highAvg, mediumAvg, lowAvg],
+                        backgroundColor: [
+                            '#e74c3c',
+                            '#f39c12',
+                            '#27ae60'
+                        ],
+                        borderColor: '#333',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Set current month in input
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            const month = today.toISOString().slice(0, 7);
+            document.getElementById('attendanceMonth').value = month;
+            document.getElementById('reportMonth').value = month;
+            
+            loadDashboard();
+        });
+        
+        // Logout
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                fetch('api/auth.php', {
+                    method: 'POST',
+                    body: new URLSearchParams({ action: 'logout' })
+                }).then(() => {
+                    window.location.href = '../login.html';
+                });
+            }
+        }
+        
+        // Update attendance on month change
+        document.getElementById('attendanceMonth')?.addEventListener('change', loadAttendance);
+    </script>
+</body>
+</html>

@@ -1,71 +1,79 @@
 <?php
-// Prevent any output before JSON
+// Start output buffering and set headers first
 ob_start();
+header('Content-Type: application/json; charset=utf-8');
+
+// Error handling
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 
+// Session
 session_start();
+
+// Database connection
 require_once '../config/db.php';
 
-// Set JSON header
-header('Content-Type: application/json');
-
-// Check connection
-if (!$conn) {
+// Verify connection
+if ($conn->connect_error) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
+    ob_end_clean();
+    echo json_encode(['success' => false, 'message' => 'Database connection failed: ' . $conn->connect_error]);
     exit;
 }
-
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized: User not logged in']);
-    exit;
-}
-
-// Check if user is admin
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized: Admin access required']);
-    exit;
-}
-
-$action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 try {
+    // Check authentication
+    if (!isset($_SESSION['user_id'])) {
+        http_response_code(401);
+        throw new Exception('Not authenticated');
+    }
+    
+    if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+        http_response_code(403);
+        throw new Exception('Admin access required');
+    }
+    
+    $action = $_GET['action'] ?? $_POST['action'] ?? '';
+    
+    if (empty($action)) {
+        throw new Exception('Action is required');
+    }
+    
     if ($action === 'getAll') {
-        $stmt = $conn->prepare("SELECT id, username, email, full_name, department, position, status, created_at FROM users WHERE role = 'employee' ORDER BY full_name");
+        // Get all employees
+        $query = "SELECT id, username, email, full_name, department, position, status, created_at 
+                  FROM users 
+                  WHERE role = 'employee' 
+                  ORDER BY full_name ASC";
         
-        if (!$stmt) {
-            throw new Exception('Prepare failed: ' . $conn->error);
+        $result = $conn->query($query);
+        
+        if (!$result) {
+            throw new Exception('Query failed: ' . $conn->error);
         }
         
-        if (!$stmt->execute()) {
-            throw new Exception('Execute failed: ' . $stmt->error);
-        }
-        
-        $result = $stmt->get_result();
         $employees = [];
-        
         while ($row = $result->fetch_assoc()) {
             $employees[] = $row;
         }
         
-        $stmt->close();
-        
         ob_end_clean();
-        echo json_encode(['success' => true, 'data' => $employees]);
+        echo json_encode([
+            'success' => true, 
+            'data' => $employees,
+            'count' => count($employees)
+        ]);
+        exit;
         
     } elseif ($action === 'create' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Get and sanitize input
+        // Validate inputs
         $username = isset($_POST['username']) ? trim($_POST['username']) : '';
         $email = isset($_POST['email']) ? trim($_POST['email']) : '';
         $full_name = isset($_POST['full_name']) ? trim($_POST['full_name']) : '';
         $department = isset($_POST['department']) ? trim($_POST['department']) : '';
         $position = isset($_POST['position']) ? trim($_POST['position']) : '';
         $status = isset($_POST['status']) ? trim($_POST['status']) : 'active';
-        $role = 'employee';
         
         // Validation
         if (empty($username)) {
@@ -77,59 +85,49 @@ try {
         if (empty($full_name)) {
             throw new Exception('Full name is required');
         }
-        
-        // Validate email format
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw new Exception('Invalid email format');
         }
         
-        // Check if username or email already exists
-        $checkStmt = $conn->prepare("SELECT id FROM users WHERE username = ? OR email = ?");
-        if (!$checkStmt) {
-            throw new Exception('Prepare failed: ' . $conn->error);
-        }
+        // Check if username or email exists
+        $check_query = "SELECT id FROM users WHERE username = '" . $conn->real_escape_string($username) . "' 
+                       OR email = '" . $conn->real_escape_string($email) . "'";
+        $check_result = $conn->query($check_query);
         
-        $checkStmt->bind_param("ss", $username, $email);
-        if (!$checkStmt->execute()) {
-            throw new Exception('Execute failed: ' . $checkStmt->error);
-        }
-        
-        $checkResult = $checkStmt->get_result();
-        if ($checkResult->num_rows > 0) {
-            $checkStmt->close();
+        if ($check_result && $check_result->num_rows > 0) {
             throw new Exception('Username or email already exists');
         }
-        $checkStmt->close();
         
         // Hash password
         $default_password = 'Welcome@123';
         $hashed_password = password_hash($default_password, PASSWORD_BCRYPT);
         
-        // Insert new employee
-        $insertStmt = $conn->prepare("INSERT INTO users (username, email, password, full_name, department, position, role, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        // Escape strings
+        $username = $conn->real_escape_string($username);
+        $email = $conn->real_escape_string($email);
+        $full_name = $conn->real_escape_string($full_name);
+        $department = $conn->real_escape_string($department);
+        $position = $conn->real_escape_string($position);
+        $hashed_password = $conn->real_escape_string($hashed_password);
         
-        if (!$insertStmt) {
-            throw new Exception('Prepare failed: ' . $conn->error);
+        // Insert
+        $insert_query = "INSERT INTO users (username, email, password, full_name, department, position, role, status) 
+                        VALUES ('$username', '$email', '$hashed_password', '$full_name', '$department', '$position', 'employee', '$status')";
+        
+        if (!$conn->query($insert_query)) {
+            throw new Exception('Insert failed: ' . $conn->error);
         }
         
-        if (!$insertStmt->bind_param("ssssssss", $username, $email, $hashed_password, $full_name, $department, $position, $role, $status)) {
-            throw new Exception('Bind failed: ' . $insertStmt->error);
-        }
-        
-        if (!$insertStmt->execute()) {
-            throw new Exception('Execute failed: ' . $insertStmt->error);
-        }
-        
-        $new_id = $insertStmt->insert_id;
-        $insertStmt->close();
+        $new_id = $conn->insert_id;
         
         ob_end_clean();
         echo json_encode([
-            'success' => true, 
+            'success' => true,
             'message' => 'Employee created successfully',
             'employee_id' => $new_id,
             'default_password' => $default_password
         ]);
+        exit;
         
     } elseif ($action === 'update' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $employee_id = isset($_POST['employee_id']) ? intval($_POST['employee_id']) : 0;
@@ -139,74 +137,83 @@ try {
         $position = isset($_POST['position']) ? trim($_POST['position']) : '';
         $status = isset($_POST['status']) ? trim($_POST['status']) : 'active';
         
-        if ($employee_id === 0) {
+        if ($employee_id <= 0) {
             throw new Exception('Invalid employee ID');
         }
         
-        $updateStmt = $conn->prepare("UPDATE users SET full_name = ?, email = ?, department = ?, position = ?, status = ? WHERE id = ? AND role = 'employee'");
+        // Escape strings
+        $full_name = $conn->real_escape_string($full_name);
+        $email = $conn->real_escape_string($email);
+        $department = $conn->real_escape_string($department);
+        $position = $conn->real_escape_string($position);
+        $status = $conn->real_escape_string($status);
         
-        if (!$updateStmt) {
-            throw new Exception('Prepare failed: ' . $conn->error);
+        $update_query = "UPDATE users SET full_name = '$full_name', email = '$email', department = '$department', 
+                        position = '$position', status = '$status' 
+                        WHERE id = $employee_id AND role = 'employee'";
+        
+        if (!$conn->query($update_query)) {
+            throw new Exception('Update failed: ' . $conn->error);
         }
         
-        if (!$updateStmt->bind_param("ssssi", $full_name, $email, $department, $position, $status, $employee_id)) {
-            throw new Exception('Bind failed: ' . $updateStmt->error);
-        }
-        
-        if (!$updateStmt->execute()) {
-            throw new Exception('Execute failed: ' . $updateStmt->error);
-        }
-        
-        if ($updateStmt->affected_rows === 0) {
-            $updateStmt->close();
+        if ($conn->affected_rows === 0) {
             throw new Exception('Employee not found or no changes made');
         }
         
-        $updateStmt->close();
-        
         ob_end_clean();
         echo json_encode(['success' => true, 'message' => 'Employee updated successfully']);
+        exit;
         
     } elseif ($action === 'delete' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $employee_id = isset($_POST['employee_id']) ? intval($_POST['employee_id']) : 0;
         
-        if ($employee_id === 0) {
+        if ($employee_id <= 0) {
             throw new Exception('Invalid employee ID');
         }
         
-        $deleteStmt = $conn->prepare("DELETE FROM users WHERE id = ? AND role = 'employee'");
+        // Delete from attendance first (foreign key constraint)
+        $delete_attendance = "DELETE FROM attendance WHERE employee_id = $employee_id";
+        $conn->query($delete_attendance);
         
-        if (!$deleteStmt) {
-            throw new Exception('Prepare failed: ' . $conn->error);
+        // Delete from ml_predictions
+        $delete_predictions = "DELETE FROM ml_predictions WHERE employee_id = $employee_id";
+        $conn->query($delete_predictions);
+        
+        // Delete from leave_requests
+        $delete_leaves = "DELETE FROM leave_requests WHERE employee_id = $employee_id";
+        $conn->query($delete_leaves);
+        
+        // Delete from attendance_statistics
+        $delete_stats = "DELETE FROM attendance_statistics WHERE employee_id = $employee_id";
+        $conn->query($delete_stats);
+        
+        // Finally delete the user
+        $delete_query = "DELETE FROM users WHERE id = $employee_id AND role = 'employee'";
+        
+        if (!$conn->query($delete_query)) {
+            throw new Exception('Delete failed: ' . $conn->error);
         }
         
-        if (!$deleteStmt->bind_param("i", $employee_id)) {
-            throw new Exception('Bind failed: ' . $deleteStmt->error);
-        }
-        
-        if (!$deleteStmt->execute()) {
-            throw new Exception('Execute failed: ' . $deleteStmt->error);
-        }
-        
-        if ($deleteStmt->affected_rows === 0) {
-            $deleteStmt->close();
+        if ($conn->affected_rows === 0) {
             throw new Exception('Employee not found');
         }
         
-        $deleteStmt->close();
-        
         ob_end_clean();
         echo json_encode(['success' => true, 'message' => 'Employee deleted successfully']);
+        exit;
         
     } else {
-        ob_end_clean();
-        echo json_encode(['success' => false, 'message' => 'Invalid action or method']);
+        throw new Exception('Invalid action: ' . $action);
     }
     
 } catch (Exception $e) {
-    ob_end_clean();
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    ob_end_clean();
+    echo json_encode([
+        'success' => false,
+        'message' => $e->getMessage(),
+        'error_type' => get_class($e)
+    ]);
     exit;
 }
 
